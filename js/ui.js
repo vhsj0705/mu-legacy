@@ -218,6 +218,7 @@ const UI = {
   closeAll() { document.querySelectorAll('.win').forEach(w => { if (w.dataset.w === 'chaos' && w.style.display === 'block') this.returnChaos(); w.style.display = 'none'; }); this.shop = null; },
   openNpc(n) {
     if (!n.shop) { this.msg(`${n.name}: "로랜시아를 지키는 것이 나의 임무다."`, 'npc'); return; }
+    if (n.shop === 'guide') { GuideUI.open(); return; }
     if (n.shop === 'chaos') { this.toggle('chaos', true); this.msg('카오스 고블린: "크크크... 무엇을 조합해볼까?"', 'npc'); return; }
     if (n.shop === 'vault') { this.toggle('vault', true); return; }
     this.shop = n.shop; $('shop-title').textContent = n.name + ' - ' + SHOPS[n.shop].title;
@@ -586,6 +587,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'c') UI.toggle('char');
   else if (k === 'm') UI.toggle('warp');
   else if (k === 'h') toggleHelper();
+  else if (k === 'g') { if (UI.isOpen('guide')) UI.toggle('guide', false); else GuideUI.open(); }
   else if (k === 'q') usePotion('hp') || UI.msg('치유 물약이 없습니다.', 'warn');
   else if (k === 'w') usePotion('mp') || UI.msg('마나 물약이 없습니다.', 'warn');
   else if (k === ' ') {

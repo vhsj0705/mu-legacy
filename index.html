@@ -60,6 +60,7 @@
           <button data-open="inv" title="인벤토리 (I)">I</button>
           <button data-open="warp" title="이동 (M)">M</button>
           <button id="btn-helper" title="MU 헬퍼 (H)">H</button>
+          <button id="btn-guide" title="MU 도우미 (G)" onclick="GuideUI.open()">💬</button>
           <button data-open="help" title="도움말 (F1)">?</button>
           <button id="btn-sound" title="소리">🔊</button>
           <button id="btn-quit" title="캐릭터 선택">⏻</button>
@@ -138,7 +139,7 @@
         <li>좌클릭: 이동 (누르고 있으면 계속 이동) / 몬스터 공격 / NPC 대화 / 아이템 줍기</li>
         <li>우클릭: 선택된 스킬 사용 (누르고 있으면 연속 사용)</li>
         <li>1~9: 스킬 선택 · Q / W: 치유 / 마나 물약 · Space: 근처 아이템 줍기</li>
-        <li>I(V): 인벤토리 · C: 캐릭터 · M: 이동 · H: MU 헬퍼 · Tab: 큰 지도 · Enter: 채팅</li>
+        <li>I(V): 인벤토리 · C: 캐릭터 · M: 이동 · H: MU 헬퍼 · G: MU 도우미(질문 챗봇) · Tab: 큰 지도 · Enter: 채팅</li>
       </ul>
       <b>성장</b>
       <ul>
@@ -152,6 +153,13 @@
       <b>명령어</b>
       <ul><li><code>/move 데비아스</code> · <code>/pos</code> · <code>/help</code></li></ul>
     </div>
+  </div>
+
+  <!-- guide chatbot -->
+  <div class="win" id="win-guide" data-w="guide" style="right:12px;top:200px;width:340px">
+    <div class="wt">💬 MU 도우미<span class="close">×</span></div>
+    <div id="guide-log"></div>
+    <div class="g-input"><input id="guide-input" maxlength="80" placeholder="무엇이든 물어보세요 (예: 어디서 사냥해?)"><button class="btn sm" id="guide-send">전송</button></div>
   </div>
 
   <!-- sound settings -->
@@ -185,6 +193,7 @@
 <script src="js/models3d.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/guide.js"></script>
 <script>Textures.loadPhotos().then(() => { Textures.gen(); M3.init(); Title.show('title'); requestAnimationFrame(frame); });</script>
 </body>
 </html>

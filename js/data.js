@@ -155,6 +155,7 @@ const MAPS = {
       { id: 'hanzo', name: '대장장이 한조', x: 52.5, y: 44.5, shop: 'weapons', look: { c1: '#6a4a2a', c2: '#c09060', armored: true, hair: '#222' } },
       { id: 'pasi', name: '마법사 파시', x: 44.5, y: 52.5, shop: 'armors', look: { c1: '#2a3a8a', c2: '#a0b0ff', robe: true, hair: '#ddd' } },
       { id: 'vault', name: '창고지기 리아', x: 52.5, y: 52.5, shop: 'vault', look: { c1: '#3a6a3a', c2: '#c0e0a0', robe: true, hair: '#8a4a2a' } },
+      { id: 'guide', name: '안내원 엘리스', x: 51.5, y: 48.5, shop: 'guide', look: { c1: '#2a5a9a', c2: '#ffe8c0', robe: true, hair: '#f0d060', longHair: true } },
       { id: 'guard1', name: '로랜시아 경비병', x: 48.5, y: 38.5, look: { c1: '#555', c2: '#ccc', armored: true, weapon: 'spear' } },
       { id: 'guard2', name: '로랜시아 경비병', x: 48.5, y: 58.5, look: { c1: '#555', c2: '#ccc', armored: true, weapon: 'spear' } }
     ],

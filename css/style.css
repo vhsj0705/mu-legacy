@@ -165,3 +165,18 @@ h2 { font-family: "Times New Roman", serif; color: var(--gold); letter-spacing: 
 .snd input[type=range] { flex: 1; accent-color: #d8a840; }
 .snd span { width: 26px; text-align: right; color: #fff; font-size: 12px; }
 .snd .mute { color: #c8b8a0; }
+/* guide chatbot */
+#guide-log { height: 340px; max-height: calc(100vh - 330px); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 6px; font-size: 12.5px; line-height: 1.6; }
+.g-msg { padding: 7px 10px; border-radius: 8px; max-width: 92%; }
+.g-msg.bot { background: rgba(70, 50, 25, 0.55); border: 1px solid #5a4428; color: #eadfca; align-self: flex-start; }
+.g-msg.me { background: rgba(40, 70, 120, 0.55); border: 1px solid #3a5a8a; color: #fff; align-self: flex-end; }
+.g-msg ul { margin: 4px 0; padding-left: 18px; }
+.g-msg b { color: #ffd890; }
+.g-msg small { color: #a89878; }
+.g-msg code, .g-msg kbd { background: #1a1008; border: 1px solid #5a4428; border-radius: 3px; padding: 0 4px; color: #ffd890; font-family: inherit; }
+.g-ok { color: #7f7; } .g-warn { color: #ffb050; } .g-bad { color: #ff6a5a; }
+.g-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.g-chips button { background: rgba(0, 0, 0, 0.45); border: 1px solid #8a6a3a; color: #ffe0a0; border-radius: 12px; padding: 2px 9px; font-size: 11.5px; cursor: pointer; font-family: inherit; }
+.g-chips button:hover { background: rgba(120, 80, 30, 0.6); color: #fff; }
+.g-input { display: flex; gap: 6px; margin-top: 6px; }
+.g-input input { flex: 1; background: #120a04; border: 1px solid #8a6a3a; color: #fff; padding: 6px 8px; font-family: inherit; font-size: 12.5px; }
