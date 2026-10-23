@@ -180,7 +180,9 @@ const UI = {
     document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => this.toggle(b.dataset.open));
     $('btn-helper').onclick = () => toggleHelper();
     $('btn-quit').onclick = () => quitToSelect();
-    $('btn-sound').onclick = () => { SFX.muted = !SFX.muted; $('btn-sound').textContent = SFX.muted ? '🔇' : '🔊'; };
+    $('btn-sound').onclick = () => { SFX.init(); this.toggle('sound'); this.renderSound(); };
+    document.querySelectorAll('#win-sound input[type=range]').forEach(r => r.oninput = () => { SFX.vol[r.dataset.k] = r.value / 100; SFX.applyVolumes(); SFX.saveVolumes(); r.nextElementSibling.textContent = r.value; });
+    $('snd-mute').onchange = e => { SFX.muted = e.target.checked; SFX.applyVolumes(); SFX.saveVolumes(); $('btn-sound').textContent = SFX.muted ? '🔇' : '🔊'; };
     $('chaos-mix').onclick = () => this.mixChaos();
     $('vault-dep').onclick = () => this.vaultZen(1);
     $('vault-wd').onclick = () => this.vaultZen(-1);
@@ -497,6 +499,7 @@ function clickEquip(slot, btn) {
     if (slot === 'shield' && p.equip.weapon && idef(p.equip.weapon).twoHand) { UI.msg('양손 무기를 사용 중입니다.', 'warn'); return; }
     if (slot === 'weapon' && d.twoHand && p.equip.shield) { UI.msg('방패를 먼저 해제하세요.', 'warn'); return; }
     const old = p.equip[slot]; p.equip[slot] = it; G.held = old ? { item: old } : null;
+    SFX.play(['weapon', 'shield', 'helm', 'armor'].includes(slot) && (WEAPON_KINDS.has(d.kind) || p.cls === 'DK') ? 'equipMetal' : 'equipCloth');
     p.calc(); SFX.play('click'); UI.dirty = true; return;
   }
   if (p.equip[slot]) { G.held = { item: p.equip[slot] }; delete p.equip[slot]; p.calc(); UI.hideTip(); UI.dirty = true; SFX.play('click'); }
@@ -540,6 +543,8 @@ function chatCommand(v) {
 
 // ----------------------------------------------------- input
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+// browsers only allow audio after a user gesture
+['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => SFX.init(), { capture: true }));
 window.addEventListener('mousemove', e => {
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   if (G.running && G.held) $('held').style.left = (e.clientX - idef(G.held.item).w * CELL / 2) + 'px';
@@ -596,6 +601,7 @@ window.addEventListener('keydown', e => {
 const Title = {
   t: 0, embers: [], sel: 0, newCls: 'DK',
   show(scr) {
+    Music.set('title'); Ambience.set(null);
     ['scr-title', 'scr-select', 'scr-create'].forEach(s => $(s).style.display = s === 'scr-' + scr ? 'flex' : 'none');
     if (scr === 'select') this.renderSelect();
     if (scr === 'create') this.renderCreate();
@@ -675,3 +681,9 @@ function deleteCharacter() {
   if (!confirm(`${c.name} 캐릭터를 삭제하시겠습니까?`)) return;
   s.chars[Title.sel] = null; writeSaves(s); Title.renderSelect();
 }
+
+// sound settings window
+UI.renderSound = function () {
+  document.querySelectorAll('#win-sound input[type=range]').forEach(r => { r.value = Math.round(SFX.vol[r.dataset.k] * 100); r.nextElementSibling.textContent = r.value; });
+  $('snd-mute').checked = SFX.muted;
+};

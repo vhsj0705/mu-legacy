@@ -40,6 +40,7 @@ function loadMap(id, x, y) {
   G.cam = iso(p.x, p.y);
   for (const [cx, cy] of m.visibleChunks(G.cam, W, H, 0)) m.getChunk(cx, cy);
   prewarm3D();
+  updateSoundscape();
 }
 function returnToTown() {
   const p = G.player;
@@ -99,13 +100,15 @@ function applyMonsterDamage(m, dmg, kind) {
   const col = kind === 'e' ? '#4cff9a' : kind === 'c' ? '#6ab8ff' : kind === 'd' ? '#ff66ff' : '#ffb347';
   FX.text(m.x, m.y, (kind === 'd' ? '더블 ' : '') + dmg, col, kind !== 'n');
   FX.spark(m.x, m.y, 30, kind === 'e' ? '#7f7' : '#fc6', 6, 1.5, 0.35, 2);
-  SFX.play(kind === 'n' ? 'hit' : 'crit');
+  SFX.hit(SFX.matOf(m.def), m.x, m.y, kind === 'n' ? 1 : 1.3);
+  if (kind !== 'n') SFX.play('crit', m.x, m.y);
   if (m.hp <= 0) killMonster(m);
+  else if (chance(0.25)) SFX.monster(m.def, 'attack', m.x, m.y);   // pain cry
 }
 function killMonster(m) {
   const p = G.player, d = m.def;
   m.hp = 0; m.dead = true; m.respawnT = d.respawn || rand(8, 14); m.fade = 1;
-  SFX.play('die');
+  SFX.monster(d, 'die', m.x, m.y);
   // exp
   let exp = (d.lv + 25) * d.lv / 3;
   const diff = p.lvl - d.lv - 10;
@@ -120,6 +123,7 @@ function killMonster(m) {
     let x = m.x + Math.cos(a) * rr, y = m.y + Math.sin(a) * rr;
     if (!G.map.walk(Math.floor(x), Math.floor(y))) { x = m.x; y = m.y; }
     G.drops.push({ x, y, zen: dr.zen, item: dr.zen ? null : dr, t: G.time });
+    if (!dr.zen) setTimeout(() => SFX.play('drop', x, y), 250);
     if (!dr.zen && (dr.exc && dr.exc.length || idef(dr).kind === 'jewel')) FX.pillar(x, y, dr.exc && dr.exc.length ? '#6f6' : '#ffd36a', 25);
   }
   if (d.boss) UI.msg(`★ ${d.name}(을)를 처치했습니다! ★`, 'gold');
@@ -156,7 +160,7 @@ function playerHurt(raw, src) {
   dmg = Math.max(1, Math.round(dmg));
   p.hp -= dmg; p.anim.hurt = 1;
   FX.text(p.x, p.y, dmg, '#ff4040');
-  SFX.play('hurt');
+  SFX.playerHurt(p.cls);
   if (r.reflect && src && !src.dead) applyMonsterDamage(src, Math.max(1, Math.round(raw * r.reflect)), 'n');
   if (p.hp <= 0) {
     p.hp = 0; p.dead = true; p.deadT = 3; p.target = null; p.path = null;
@@ -194,7 +198,11 @@ function doAttack(targetMon, skillId, point) {
   faceTo(p, tx, ty);
   if (!s) {
     if (p.cls === 'FE') { spawnProj(p.x, p.y, targetMon, '#fff1a8', 'arrow', m => playerDamage(m, null)); SFX.play('arrow'); }
-    else { SFX.play('swing'); setTimeout(() => targetMon && !targetMon.dead && playerDamage(targetMon, null), 120); }
+    else {
+      const wk = p.equip.weapon ? idef(p.equip.weapon).kind : null;
+      SFX.play(wk === 'axe' || wk === 'staff' ? 'swingHeavy' : 'swing');
+      setTimeout(() => targetMon && !targetMon.dead && playerDamage(targetMon, null), 120);
+    }
     return true;
   }
   switch (s.type) {
@@ -206,6 +214,7 @@ function doAttack(targetMon, skillId, point) {
       break;
     case 'proj':
       SFX.play(skillId === 'fire_ball' ? 'fire' : skillId === 'energy_ball' ? 'magic' : 'arrow');
+      if (skillId === 'ice_arrow') SFX.play('ice');
       spawnProj(p.x, p.y, targetMon || point, s.color, skillId, m => { playerDamage(m, s); if (s.freeze) m.frozen = 2; }, s.pierce);
       break;
     case 'multi':
@@ -221,7 +230,7 @@ function doAttack(targetMon, skillId, point) {
       if (targetMon) setTimeout(() => !targetMon.dead && playerDamage(targetMon, s), 60);
       break;
     case 'aoe_self':
-      SFX.play(skillId === 'twisting' ? 'swing' : 'fire');
+      SFX.play(skillId === 'twisting' ? 'whirl' : skillId === 'evil_spirit' ? 'spirit' : 'fire');
       FX.ring(p.x, p.y, s.color, s.radius, 0.6, 8);
       if (skillId === 'evil_spirit') for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; FX.projs.push({ type: 'spirit', x: p.x, y: p.y, a, life: 0.9, col: s.color }); }
       if (skillId === 'hellfire') for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, d = Math.random() * s.radius; FX.parts.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, z: 0, vx: 0, vy: 0, vz: rand(60, 140), life: rand(0.4, 0.9), max: 0.9, col: pick(['#ff4a1a', '#ffb030', '#ff7a2a']), size: rand(3, 6), g: 0 }); }
@@ -231,12 +240,14 @@ function doAttack(targetMon, skillId, point) {
     case 'aoe_target':
       if (skillId === 'meteorite') {
         FX.projs.push({ type: 'meteor', x: tx + 1.5, y: ty - 1.5, tx, ty, z: 260, life: 0.45, max: 0.45, col: s.color });
-        setTimeout(() => { SFX.play('fire'); FX.ring(tx, ty, '#ff9a3a', s.radius, 0.5, 7); FX.spark(tx, ty, 10, '#ffb050', 30, 3, 0.7, 4); monstersNear(tx, ty, s.radius).forEach(m => playerDamage(m, s)); }, 450);
+        SFX.play('fire');
+        setTimeout(() => { SFX.play('boom', tx, ty); FX.ring(tx, ty, '#ff9a3a', s.radius, 0.5, 7); FX.spark(tx, ty, 10, '#ffb050', 30, 3, 0.7, 4); monstersNear(tx, ty, s.radius).forEach(m => playerDamage(m, s)); }, 450);
       } else if (skillId === 'ice_storm') {
         for (let i = 0; i < 14; i++) setTimeout(() => FX.projs.push({ type: 'meteor', x: tx + rand(-2, 2) + 1, y: ty + rand(-2, 2) - 1, tx: tx + rand(-1.5, 1.5), ty: ty + rand(-1.5, 1.5), z: 200, life: 0.3, max: 0.3, col: '#cff', small: true }), i * 40);
-        setTimeout(() => { SFX.play('bolt'); FX.ring(tx, ty, '#aef3ff', s.radius, 0.6, 6); monstersNear(tx, ty, s.radius).forEach(m => { playerDamage(m, s); m.frozen = 1.5; }); }, 450);
+        SFX.play('whirl');
+        setTimeout(() => { SFX.play('ice', tx, ty); FX.ring(tx, ty, '#aef3ff', s.radius, 0.6, 6); monstersNear(tx, ty, s.radius).forEach(m => { playerDamage(m, s); m.frozen = 1.5; }); }, 450);
       } else { // rageful blow
-        SFX.play('crit');
+        SFX.play('swingHeavy'); setTimeout(() => SFX.play('boom', tx, ty), 150);
         for (let i = 0; i < 3; i++) setTimeout(() => { FX.ring(tx, ty, '#ff6a2b', s.radius * (0.5 + i * 0.25), 0.4, 7); FX.spark(tx, ty, 0, '#a86a3a', 18, 3, 0.6, 4); }, i * 120);
         setTimeout(() => monstersNear(tx, ty, s.radius).forEach(m => playerDamage(m, s)), 200);
       }
@@ -250,13 +261,13 @@ function doAttack(targetMon, skillId, point) {
       break;
     }
     case 'heal':
-      SFX.play('buff');
+      SFX.play('heal');
       p.hp = Math.min(p.maxHp, p.hp + 5 + p.stats.ene / 5 * 1.0 + p.maxHp * 0.08);
       FX.pillar(p.x, p.y, s.color, 25);
       break;
     case 'teleport':
       if (point && G.map.walk(Math.floor(point.x), Math.floor(point.y)) && dist(p.x, p.y, point.x, point.y) <= s.range) {
-        SFX.play('warp'); FX.pillar(p.x, p.y, s.color, 25); p.x = point.x; p.y = point.y; p.path = null; FX.pillar(p.x, p.y, s.color, 25);
+        SFX.play('teleport'); FX.pillar(p.x, p.y, s.color, 25); p.x = point.x; p.y = point.y; p.path = null; FX.pillar(p.x, p.y, s.color, 25);
       } else { p.mp += s.mp; UI.msg('그곳으로 이동할 수 없습니다.', 'warn'); }
       break;
   }
@@ -333,6 +344,7 @@ function moveAlong(e, speed, dt) {
   // gait phase advances with distance travelled so feet don't slide
   const before = e.anim.walk || 0;
   e.anim.walk = before + moved / 2.1 * Math.PI * 2; e.anim.moving = true;
+  if (e === G.player && Math.floor(before / Math.PI) !== Math.floor(e.anim.walk / Math.PI)) SFX.step(e.x, e.y);
   if (e === G.player && Math.floor(before / Math.PI) !== Math.floor(e.anim.walk / Math.PI) && G.map.theme !== 'water') {
     const dc = { snow: '#e8f0ff', dungeon: '#6a5a4a', tower: '#5a4a6a' }[G.map.theme] || '#9a8462';
     for (let i = 0; i < 3; i++) FX.parts.push({ x: e.x + rand(-0.15, 0.15), y: e.y + rand(-0.15, 0.15), z: 2, vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3), vz: rand(8, 20), life: 0.5, max: 0.5, col: dc, size: rand(1.5, 3), g: 20, dust: true });
@@ -443,6 +455,7 @@ function updateMonsters(dt) {
     if (m.state === 'return') {
       if (leash < 1) { m.state = 'idle'; m.hp = d.hp; }
     } else if (!p.dead && !pTown && (dp < d.view && !passive || m.state === 'chase')) {
+      if (m.state !== 'chase' && (d.boss || chance(0.45))) SFX.monster(d, 'aggro', m.x, m.y);
       m.state = 'chase';
       if (leash > 14 || dp > 16) m.state = 'return';
     } else if (m.state === 'chase') m.state = 'return';
@@ -452,6 +465,8 @@ function updateMonsters(dt) {
         faceTo(m, p.x, p.y);
         if (m.cd <= 0) {
           m.cd = d.delay / 1000; m.anim.atk = 1;
+          SFX.monster(d, 'attack', m.x, m.y);
+          if (d.look.weapon && !d.ranged) setTimeout(() => SFX.play(d.look.weapon === 'axe' || d.look.weapon === 'club' ? 'swingHeavy' : 'swing', m.x, m.y), 90);
           const raw = randi(d.min, d.max);
           const hit = chance(hitChance(d.ar, p.defRate));
           if (d.ranged) FX.projs.push({ type: 'mproj', x: m.x, y: m.y, tx: p.x, ty: p.y, t: 0, dur: dp / 10, col: d.ranged });
@@ -475,8 +490,10 @@ function updateMonsters(dt) {
         else if (map.walk(Math.floor(m.x), Math.floor(ny)) && !map.inTown(Math.floor(m.x), Math.floor(ny))) m.y = ny;
         else if (m.state === 'idle') m.wander = 0;
         faceTo(m, tx, ty);
-        const moved = Math.hypot(vx, vy);
-        m.anim.walk += moved / (1.25 * (m.def.look.scale || 1)) * Math.PI * 2; m.anim.moving = true;
+        const moved = Math.hypot(vx, vy), w0 = m.anim.walk || 0, sc = m.def.look.scale || 1;
+        m.anim.walk = w0 + moved / (1.25 * sc) * Math.PI * 2; m.anim.moving = true;
+        // heavy monsters shake the ground with their steps
+        if ((sc >= 1.4 || d.boss) && d.shape !== 'flyer' && d.shape !== 'ghost' && Math.floor(w0 / Math.PI) !== Math.floor(m.anim.walk / Math.PI)) SFX.step(m.x, m.y, 1.6);
       }
     }
   }
@@ -531,6 +548,8 @@ function update(dt) {
   const tgt = iso(G.player.x, G.player.y);
   G.cam.x = lerp(G.cam.x, tgt.x, Math.min(1, dt * 10)); G.cam.y = lerp(G.cam.y, tgt.y - 30, Math.min(1, dt * 10));
   G.map.prefetch(G.cam, W, H);
+  G.soundT = (G.soundT || 0) + dt;
+  if (G.soundT > 1) { G.soundT = 0; updateSoundscape(); }   // town <-> field music crossfade
   // hover
   updateHover();
   // weather
