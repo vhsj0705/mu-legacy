@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MU LEGACY</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ===================== title / select / create ===================== -->
+<div id="screens">
+  <div id="scr-title" class="scr">
+    <div class="logo"><span>MU</span><em>LEGACY</em></div>
+    <p class="sub">The Continent of Legend · 팬메이드 HTML5 리메이크</p>
+    <button class="btn big" onclick="SFX.init();SFX.play('click');Title.show('select')">게임 시작</button>
+    <p class="note">원작 MU Online(웹젠)에서 영감을 받은 비상업적 팬 프로젝트입니다. 그래픽·사운드는 모두 코드로 직접 그렸으며 원작 리소스를 포함하지 않습니다.<br>게임 수치 참고: OpenMU (MIT, github.com/MUnique/OpenMU)</p>
+  </div>
+  <div id="scr-select" class="scr">
+    <h2>캐릭터 선택</h2>
+    <div id="slots"></div>
+    <div class="row">
+      <button class="btn" onclick="(loadSaves().chars[Title.sel]) ? startGame(Title.sel) : Title.show('create')">접속</button>
+      <button class="btn" onclick="deleteCharacter()">삭제</button>
+      <button class="btn" onclick="Title.show('title')">뒤로</button>
+    </div>
+  </div>
+  <div id="scr-create" class="scr">
+    <h2>캐릭터 생성</h2>
+    <div id="cls-cards"></div>
+    <div class="row"><input id="new-name" maxlength="10" placeholder="캐릭터 이름 (최대 10자)">
+      <button class="btn" onclick="createCharacter()">생성</button>
+      <button class="btn" onclick="Title.show('select')">취소</button></div>
+  </div>
+</div>
+
+<!-- ===================== HUD ===================== -->
+<div id="hud" style="display:none">
+  <div id="loc"></div>
+  <canvas id="minimap" width="170" height="170"></canvas>
+  <div id="target"><div id="t-name"></div><div class="bar"><div id="t-fill"></div><span id="t-hp"></span></div></div>
+  <div id="buffs"></div>
+  <div id="helper-ind">MU HELPER 작동 중</div>
+  <div id="banner"></div>
+  <div id="lvup"></div>
+  <div id="chat"></div>
+  <input id="chatInput" placeholder="메시지 또는 명령어 (/help)">
+
+  <div id="bottom">
+    <div class="orb hp"><div class="fill" id="hp-fill"></div><div class="gloss"></div><span id="hp-txt"></span></div>
+    <div class="center">
+      <div id="exp"><div id="exp-fill"></div><span id="exp-txt"></span></div>
+      <div class="belt">
+        <div class="pot" title="Q: 치유 물약"><b>Q</b><span class="pi hpot"></span><i id="q-cnt">0</i></div>
+        <div class="pot" title="W: 마나 물약"><b>W</b><span class="pi mpot"></span><i id="w-cnt">0</i></div>
+        <div id="skillbar"></div>
+        <div class="menu">
+          <button data-open="char" title="캐릭터 (C)">C<span id="pts-badge">!</span></button>
+          <button data-open="inv" title="인벤토리 (I)">I</button>
+          <button data-open="warp" title="이동 (M)">M</button>
+          <button id="btn-helper" title="MU 헬퍼 (H)">H</button>
+          <button data-open="help" title="도움말 (F1)">?</button>
+          <button id="btn-sound" title="소리">🔊</button>
+          <button id="btn-quit" title="캐릭터 선택">⏻</button>
+        </div>
+      </div>
+    </div>
+    <div class="orb mp"><div class="fill" id="mp-fill"></div><div class="gloss"></div><span id="mp-txt"></span></div>
+  </div>
+
+  <!-- inventory -->
+  <div class="win" id="win-inv" data-w="inv" style="right:12px;top:60px">
+    <div class="wt">인벤토리<span class="close">×</span></div>
+    <div id="equip">
+      <div class="eq" data-slot="pendant" data-label="목걸이" style="left:20px;top:28px;width:32px;height:32px"></div>
+      <div class="eq" data-slot="helm" data-label="투구" style="left:98px;top:6px;width:64px;height:64px"></div>
+      <div class="eq" data-slot="wings" data-label="날개" style="left:176px;top:6px;width:84px;height:64px"></div>
+      <div class="eq" data-slot="weapon" data-label="무기" style="left:6px;top:78px;width:64px;height:110px"></div>
+      <div class="eq" data-slot="armor" data-label="갑옷" style="left:98px;top:78px;width:64px;height:96px"></div>
+      <div class="eq" data-slot="shield" data-label="방패" style="left:190px;top:78px;width:64px;height:80px"></div>
+      <div class="eq" data-slot="gloves" data-label="장갑" style="left:6px;top:196px;width:64px;height:64px"></div>
+      <div class="eq" data-slot="pants" data-label="바지" style="left:98px;top:182px;width:64px;height:64px"></div>
+      <div class="eq" data-slot="boots" data-label="부츠" style="left:190px;top:196px;width:64px;height:64px"></div>
+      <div class="eq" data-slot="ring1" data-label="반지" style="left:74px;top:228px;width:32px;height:32px"></div>
+      <div class="eq" data-slot="ring2" data-label="반지" style="left:154px;top:228px;width:32px;height:32px"></div>
+    </div>
+    <div id="inv-grid" class="grid"></div>
+    <div class="zenrow">젠 <b id="zen">0</b></div>
+    <div class="hint">클릭: 집기/놓기 · 우클릭: 사용/장착 · 보석을 장비 위에 놓으면 강화</div>
+  </div>
+
+  <!-- character -->
+  <div class="win" id="win-char" data-w="char" style="left:12px;top:60px;width:270px">
+    <div class="wt">캐릭터 정보<span class="close">×</span></div>
+    <div id="char-body"></div>
+  </div>
+
+  <!-- shop -->
+  <div class="win" id="win-shop" data-w="shop" style="left:12px;top:60px;width:300px">
+    <div class="wt"><span id="shop-title">상점</span><span class="close">×</span></div>
+    <div id="shop-list"></div>
+  </div>
+
+  <!-- chaos machine -->
+  <div class="win" id="win-chaos" data-w="chaos" style="left:12px;top:60px;width:276px">
+    <div class="wt">카오스 조합<span class="close">×</span></div>
+    <div class="chaos-art"><div class="cm"></div></div>
+    <div id="chaos-grid" class="grid"></div>
+    <div id="chaos-info"></div>
+    <button class="btn" id="chaos-mix">조합</button>
+    <div class="hint">
+      · +10~+15: 아이템(+9~+14) + 축복/영혼 n개 + 혼돈 1<br>
+      · 1차 날개/카오스 무기: +4 이상 장비 + 혼돈의 보석<br>
+      · 2차 날개: 1차 날개 + 로크의 깃털 + 엑설런트 아이템 + 혼돈
+    </div>
+  </div>
+
+  <!-- vault -->
+  <div class="win" id="win-vault" data-w="vault" style="left:12px;top:60px;width:276px">
+    <div class="wt">창고<span class="close">×</span></div>
+    <div id="vault-grid" class="grid"></div>
+    <div class="zenrow">보관 젠 <b id="vault-zen">0</b> <button class="btn sm" id="vault-dep">입금</button><button class="btn sm" id="vault-wd">출금</button></div>
+  </div>
+
+  <!-- warp -->
+  <div class="win" id="win-warp" data-w="warp" style="left:50%;top:120px;transform:translateX(-50%);width:300px">
+    <div class="wt">이동 (Move)<span class="close">×</span></div>
+    <div id="warp-list"></div>
+  </div>
+
+  <!-- help -->
+  <div class="win" id="win-help" data-w="help" style="left:50%;top:80px;transform:translateX(-50%);width:460px">
+    <div class="wt">도움말<span class="close">×</span></div>
+    <div class="help">
+      <b>조작</b>
+      <ul>
+        <li>좌클릭: 이동 (누르고 있으면 계속 이동) / 몬스터 공격 / NPC 대화 / 아이템 줍기</li>
+        <li>우클릭: 선택된 스킬 사용 (누르고 있으면 연속 사용)</li>
+        <li>1~9: 스킬 선택 · Q / W: 치유 / 마나 물약 · Space: 근처 아이템 줍기</li>
+        <li>I(V): 인벤토리 · C: 캐릭터 · M: 이동 · H: MU 헬퍼 · Tab: 큰 지도 · Enter: 채팅</li>
+      </ul>
+      <b>성장</b>
+      <ul>
+        <li>레벨업마다 스탯 포인트 5 · 채팅 명령 <code>/str 10</code>, <code>/agi</code>, <code>/vit</code>, <code>/ene</code></li>
+        <li>축복의 보석: +0→+6 (100%) · 영혼의 보석: +6→+9 (50%, 행운 +25%) · 실패 시 +7 이상은 +0으로</li>
+        <li>생명의 보석: 추가 옵션 +4씩 (50%) · 카오스 고블린(노리아)에서 +10~+15 조합, 날개 조합</li>
+        <li>장비를 모두 +7 이상으로 맞추면 캐릭터가 빛나는 세트 효과가 나타납니다</li>
+      </ul>
+      <b>지역</b>
+      <ul><li>로랜시아(1) · 노리아(1) · 데비아스(20) · 던전(30) · 아틀란스(50) · 로스트 타워(70) — 보스: 아이스 퀸, 고르곤, 발록</li></ul>
+      <b>명령어</b>
+      <ul><li><code>/move 데비아스</code> · <code>/pos</code> · <code>/help</code></li></ul>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="held"></div>
+
+<!-- Three.js r149 (MIT) bundled locally for offline 3D characters; CDN only as a fallback. -->
+<script src="js/lib/three.min.js"></script>
+<script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"><\/script>');</script>
+<script src="js/data.js"></script>
+<script src="js/util.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/texdata.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/world.js"></script>
+<script src="js/world_render.js"></script>
+<script src="js/render_chars.js"></script>
+<script src="js/items.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/models3d.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script>Textures.loadPhotos().then(() => { Textures.gen(); M3.init(); Title.show('title'); requestAnimationFrame(frame); });</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# MU LEGACY — MU Online 스타일 HTML5 팬 리메이크
+
+원작 **MU Online**(웹젠)의 시스템을 브라우저에서 재현한 비상업적 팬 프로젝트입니다.
+그래픽·사운드는 전부 코드(Canvas / WebAudio)로 직접 그렸고, 원작 클라이언트 리소스나 유출 소스는 쓰지 않았습니다.
+
+## 그래픽
+- 지형·건물·나무: **Poly Haven의 CC0 사진 텍스처**(풀밭·흙길·자갈길·돌바닥·모래·눈·성벽·벽돌·기와·회벽·나무판·나무껍질·바위)에 높이 기반 음영과 자연스러운 경계 블렌딩, 그림자를 더해 사용
+  - 텍스처는 512px로 줄여 `js/texdata.js`에 내장되어 있어 더블클릭 실행(file://)에서도 동작합니다
+- 캐릭터·몬스터: **Three.js(r149)**로 만든 관절형 3D 모델을 매 프레임 실시간 렌더링
+  - 몸 방향이 부드럽게 회전하고, 대기(호흡·무게중심 이동) / 걷기 / 달리기 / 공격(예비동작→타격→마무리) / 피격 / 사망 동작이 끊김 없이 섞입니다
+  - 가죽·금속 재질에는 사진 텍스처와 노멀맵을 사용하고, 보폭은 이동 거리에 맞춰 발이 미끄러지지 않게 했습니다
+  - Three.js는 `js/lib/three.min.js`에 포함되어 있어 인터넷 없이도 3D로 나옵니다 (MIT 라이선스, © Three.js Authors)
+  - WebGL을 지원하지 않는 환경에서는 기존 2D 벡터 캐릭터로 자동 전환됩니다
+
+## 실행
+`index.html`을 더블클릭하면 바로 실행됩니다. 로컬 서버로 띄우려면:
+
+```bash
+python -m http.server 8765
+```
+그 다음 http://localhost:8765 에 접속하세요. 저장 데이터는 브라우저 localStorage에 남습니다.
+
+## 사용한 외부 자료
+- 사진 텍스처: Poly Haven (https://polyhaven.com) — CC0 1.0 (퍼블릭 도메인)
+  leafy_grass, forest_ground_04, stony_dirt_path, cobblestone_floor_08, stone_tiles, aerial_sand, snow_02, rock_tile_floor,
+  clay_roof_tiles_02, plastered_wall_02, medieval_wall_01, castle_brick_07, dark_wooden_planks, bark_brown_02, lichen_rock,
+  brown_leather, metal_plate
+- 3D 엔진: Three.js r149 — MIT License
+
+## GitHub에서 참고한 자료
+- **OpenMU** (https://github.com/MUnique/OpenMU, MIT 라이선스): C#으로 새로 작성된 MU 서버입니다.
+  - `CharacterClasses/ClassDarkKnight.cs`, `ClassDarkWizard.cs`, `ClassFairyElf.cs`: 기본 스탯, HP/MP 공식, 공격력·방어력·공격속도 공식
+  - `Version075/Maps/Lorencia.cs`: 로랜시아 몬스터의 레벨, HP, 공격력, 방어력, 공격/방어 성공률, 공격 딜레이
+- 그 밖의 맵 몬스터 수치, 보석 강화 확률, 카오스 조합 규칙은 클래식(시즌 1~2) 규칙을 따른 근사값입니다.
+
+## 구현 내용
+| 분류 | 내용 |
+|---|---|
+| 클래스 | 다크나이트, 흑마법사, 요정 (OpenMU 공식 적용, 레벨업마다 5포인트) |
+| 맵 | 로랜시아, 노리아, 데비아스, 던전, 아틀란스, 로스트 타워 (쿼터뷰 절차적 생성) |
+| 몬스터 | 45종 + 보스 3종 (아이스 퀸, 고르곤, 발록) |
+| 스킬 | 21종 (회오리베기, 분노의 일격, 데스 스탭, 메테오, 헬파이어, 악령, 아이스 스톰, 트리플 샷, 치료, 방어력/공격력 향상 등) |
+| 아이템 | 무기/방패/세트 방어구 17세트/날개 1·2차/반지·목걸이, +0~+15, 행운·스킬·추가옵션, 엑설런트 옵션 |
+| 보석 | 축복(+6까지 100%), 영혼(+7~+9 50%, 행운 +25%, 실패 시 초기화), 생명(추가옵션), 혼돈 |
+| 카오스 조합 | +10~+15 조합, 1차 날개/카오스 무기, 2차 날개(로크의 깃털) |
+| 그 밖의 기능 | 8x8 격자 인벤토리, 상점 구매/판매, 창고, 이동(M), 미니맵, MU 헬퍼(자동사냥), +7 이상 세트 발광 효과, 저장 슬롯 5개 |
+
+## 조작
+- 좌클릭: 이동 / 공격 / NPC 대화 / 줍기 · 우클릭: 선택한 스킬 사용
+- 1~9: 스킬 선택 · Q/W: 물약 · Space: 줍기 · I: 인벤토리 · C: 캐릭터 · M: 이동 · H: 헬퍼 · Tab: 지도 · F1: 도움말
+- 채팅 명령어: `/str 10`, `/agi`, `/vit`, `/ene`, `/move 데비아스`, `/pos`
