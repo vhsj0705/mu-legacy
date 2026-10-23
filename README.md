@@ -1,5 +1,7 @@
 # MU LEGACY — MU Online 스타일 HTML5 팬 리메이크
 
+▶ **웹에서 바로 플레이: https://vhsj0705.github.io/mu-legacy/** (PC 브라우저, 마우스·키보드 권장)
+
 원작 **MU Online**(웹젠)의 시스템을 브라우저에서 재현한 비상업적 팬 프로젝트입니다.
 그래픽·사운드는 전부 코드(Canvas / WebAudio)로 직접 그렸고, 원작 클라이언트 리소스나 유출 소스는 쓰지 않았습니다.
 
